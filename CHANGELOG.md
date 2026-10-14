@@ -11,6 +11,11 @@ existing install.
 
 <!-- New entries go below this line, newest first; the release writeback inserts here. -->
 
+## 2026-10-14 — unifi-network 1.1.4, unifi-protect 1.1.4, unifi-access 1.0.3
+
+- Pins `unifi-network-mcp` [0.38.2](https://github.com/sirkirby/unifi-mcp/releases/tag/network/v0.38.2), `unifi-protect-mcp` [0.9.2](https://github.com/sirkirby/unifi-mcp/releases/tag/protect/v0.9.2) and `unifi-access-mcp` [0.6.15](https://github.com/sirkirby/unifi-mcp/releases/tag/access/v0.6.15).
+
+
 ## 2026-10-13 — unifi-network 1.1.3, unifi-protect 1.1.3, unifi-access 1.0.2
 
 - **Codex has the UniFi tools in its first session after setup.** Codex setup and
