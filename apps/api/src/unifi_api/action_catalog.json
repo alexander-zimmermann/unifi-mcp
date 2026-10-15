@@ -753,12 +753,12 @@
       "permission_action": "update",
       "read_only_hint": false,
       "auth_method": "local_only",
-      "manager_attr": "alarm_manager",
+      "manager_attr": "alarm_facade",
       "manager_method": "arm",
       "input_schema": {
         "properties": {
           "profile_id": {
-            "description": "Legacy Protect arm profile id. Do not pass Alarm Manager v2 UUIDs from protect_alarm_list_profiles; omit to use the currently selected legacy profile.",
+            "description": "Arm profile id from protect_alarm_list_profiles (Global-mode consoles also accept the profile name; legacy consoles need the id). Required when the console has several profiles; omit for the only profile (legacy consoles: the currently selected profile). Must not be blank.",
             "type": "string"
           }
         },
@@ -819,10 +819,15 @@
       "permission_action": "update",
       "read_only_hint": false,
       "auth_method": "local_only",
-      "manager_attr": "alarm_manager",
+      "manager_attr": "alarm_facade",
       "manager_method": "disarm",
       "input_schema": {
-        "properties": {},
+        "properties": {
+          "profile_id": {
+            "description": "Arm profile id to disarm (Global-mode consoles also accept the profile name). Omit to disarm every active profile; must not be blank. Legacy consoles disarm system-wide and ignore this.",
+            "type": "string"
+          }
+        },
         "type": "object",
         "additionalProperties": false
       }
