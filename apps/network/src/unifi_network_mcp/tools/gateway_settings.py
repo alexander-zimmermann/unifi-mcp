@@ -27,6 +27,11 @@ from unifi_network_mcp.runtime import (
     should_redact_sensitive_fields,
 )
 
+try:
+    from unifi_core.network.managers.gateway_settings_manager import UNVERIFIED_UPDATE_ERROR
+except ImportError:  # unifi-core before this constant existed never reports an unverified write
+    UNVERIFIED_UPDATE_ERROR = None
+
 logger = logging.getLogger(__name__)
 
 # Fields whose change affects gateway-wide reachability or security posture.
@@ -198,6 +203,10 @@ async def update_gateway_settings(
                 },
                 redact_sensitive=redact_sensitive,
             )
+        if error_detail and UNVERIFIED_UPDATE_ERROR and error_detail.startswith(UNVERIFIED_UPDATE_ERROR):
+            # Not a failed write: the change may be live, so say so instead of "failed".
+            logger.warning("Gateway settings update could not be verified: %s", error_detail)
+            return {"success": False, "mutation_applied": None, "error": error_detail}
         logger.error("Failed to update gateway settings: %s", error_detail)
         return {"success": False, "error": f"Failed to update gateway settings: {error_detail}"}
     except Exception as e:
