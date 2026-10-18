@@ -11,6 +11,11 @@ existing install.
 
 <!-- New entries go below this line, newest first; the release writeback inserts here. -->
 
+## 2026-10-18 — unifi-network 1.1.8
+
+- Pins `unifi-network-mcp` [0.38.6](https://github.com/sirkirby/unifi-mcp/releases/tag/network/v0.38.6).
+
+
 ## 2026-10-17 — unifi-access 1.0.4
 
 - Pins `unifi-access-mcp` [0.6.16](https://github.com/sirkirby/unifi-mcp/releases/tag/access/v0.6.16).
