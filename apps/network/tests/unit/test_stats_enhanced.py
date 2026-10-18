@@ -287,7 +287,11 @@ class TestStatsManagerEnhanced:
         assert result == v2_events
         assert mock_connection.request.call_count == 2
         assert mock_connection.request.call_args_list[0][0][0].path == "/stat/ips/event"
-        assert mock_connection.request.call_args_list[1][0][0].path == "/system-log/all"
+        v2_request = mock_connection.request.call_args_list[1][0][0]
+        # Threat blocks are not dashboard events, so /system-log/critical never has them.
+        assert v2_request.path == "/system-log/all"
+        assert v2_request.data["categories"] == ["SECURITY"]
+        assert "type" not in v2_request.data
 
     @pytest.mark.asyncio
     async def test_get_ips_events_non_empty_legacy_skips_v2(self, stats_manager, mock_connection):
@@ -656,3 +660,49 @@ class TestGetAlertsFallbackDiagnostics:
 
         result = await stats_manager.get_alerts()
         assert result == [{"_id": "a1", "archived": False}]
+
+
+class TestStatsToolArguments:
+    """Tool-level argument handling: no silent fallbacks."""
+
+    def test_unknown_duration_is_rejected(self):
+        from unifi_network_mcp.tools.stats import _duration_hours
+
+        assert _duration_hours("daily") == 24
+        with pytest.raises(ValueError, match="start/end"):
+            _duration_hours("8h")
+
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ("1790930100", 1790930100000),
+            ("1790930100000", 1790930100000),
+            ("2026-10-02T06:35:00Z", 1790922900000),
+            ("2026-10-02T02:35:00-04:00", 1790922900000),
+            (None, None),
+        ],
+    )
+    def test_epoch_ms_parsing(self, value, expected):
+        from unifi_network_mcp.tools.stats import _epoch_ms
+
+        assert _epoch_ms(value) == expected
+
+    def test_epoch_ms_rejects_garbage(self):
+        from unifi_network_mcp.tools.stats import _epoch_ms
+
+        with pytest.raises(ValueError):
+            _epoch_ms("last tuesday")
+
+    @pytest.mark.parametrize("value", ["", "   "])
+    def test_epoch_ms_rejects_blank(self, value):
+        """An empty bound is an error, not "omitted": None is the only way to omit it."""
+        from unifi_network_mcp.tools.stats import _epoch_ms
+
+        with pytest.raises(ValueError, match="Empty time bound"):
+            _epoch_ms(value)
+
+    def test_epoch_ms_rejects_naive_iso(self):
+        from unifi_network_mcp.tools.stats import _epoch_ms
+
+        with pytest.raises(ValueError, match="UTC offset"):
+            _epoch_ms("2026-10-02T06:35:00")
