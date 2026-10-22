@@ -11,6 +11,11 @@ existing install.
 
 <!-- New entries go below this line, newest first; the release writeback inserts here. -->
 
+## 2026-10-22 — unifi-protect 1.1.8
+
+- Pins `unifi-protect-mcp` [0.9.5](https://github.com/sirkirby/unifi-mcp/releases/tag/protect/v0.9.5).
+
+
 ## 2026-10-22 — unifi-network 1.2.4
 
 - Pins `unifi-network-mcp` [0.39.3](https://github.com/sirkirby/unifi-mcp/releases/tag/network/v0.39.3).
