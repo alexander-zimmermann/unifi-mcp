@@ -749,8 +749,9 @@ def claude_main(args, root, name, product):
             "dialog. " + outcome + " " + choices
         )
 
-    # Clear a keychain secret alone first on a release newer than the newest known
-    # to keep it: where Claude Code ignores the empty value, nothing changes.
+    # A release newer than the newest known to keep a keychain secret may clear it.
+    # Setup then changes that one credential alone: it saves and verifies the new
+    # settings, then clears the secret, so the credential always has a saved value.
     probe = False
     if cleared:
         version = claude_version(environment)
@@ -760,6 +761,25 @@ def claude_main(args, root, name, product):
                 "Claude Code holds " + ", ".join(cleared) + " in the system keychain, and this Claude Code version "
                 "cannot clear a saved secret: claude plugin configure and the /plugin options dialog ignore an "
                 "empty value. No settings were changed. " + choices
+            )
+        variable_of = {option: variable for variable, option in mapping.items()}
+
+        def credential_of(option):
+            match = secret_base(variable_of[option])
+            return match[1] if match else None
+
+        if len(cleared) > 1:
+            refuse(
+                "Clearing " + ", ".join(cleared) + " from the system keychain needs one setup run per credential, "
+                "with nothing else changed, so a failed or interrupted step cannot leave mixed settings. "
+                "Switch them one at a time. No settings were changed."
+            )
+        others = sorted(variable_of[o] for o in changes if credential_of(o) != cleared[0])
+        if others:
+            refuse(
+                "Clearing " + cleared[0] + " from the system keychain needs a setup run that changes only that "
+                "credential, so a failed or interrupted step cannot leave mixed settings. Change it first, then "
+                "rerun setup for " + ", ".join(others) + ". No settings were changed."
             )
     if args.dry_run:
         print("Validation passed; dry run made no changes. Values are omitted.")
@@ -787,43 +807,97 @@ def claude_main(args, root, name, product):
         )
 
     if changes:
-        cleared_note = ""
-        if probe:
-            configure({mapping[variable]: "" for variable in cleared})
-            current = claude_saved(plugin_id, environment, mapping, schema)
-            kept = [variable for variable in cleared if current.get(variable) == KEYCHAIN]
-            if kept:
-                refuse(kept_message(kept, "No settings were changed."))
-            cleared_note = (
-                " " + ", ".join(cleared) + (" was" if len(cleared) == 1 else " were") + " cleared from the system "
-                "keychain; rerun setup to finish."
+        clears = {mapping[variable]: "" for variable in cleared} if probe else {}
+        staged = {option: value for option, value in changes.items() if option not in clears}
+        if staged:
+            try:
+                configure(staged)
+                after = claude_values(claude_saved(plugin_id, environment, mapping, schema), mapping, schema)
+            except SetupError:
+                if probe:
+                    refuse(
+                        "Claude Code did not confirm saving the new options; " + cleared[0] + " was not cleared from "
+                        "the system keychain. Rerun setup with the same settings to finish; until then the server "
+                        "refuses to start if two spellings of the credential are set."
+                    )
+                raise
+            retained = all(
+                (after[option] == KEYCHAIN) == bool(value)
+                if schema[option].get("sensitive")
+                else after[option] == value
+                for option, value in staged.items()
             )
-        try:
-            configure(changes)
-        except SetupError:
-            if probe:
-                refuse("Claude Code did not save the requested options." + cleared_note)
-            raise
-        after = claude_values(claude_saved(plugin_id, environment, mapping, schema), mapping, schema)
-        retained = all(
-            (after[option] == KEYCHAIN) == bool(value) if schema[option].get("sensitive") else after[option] == value
-            for option, value in changes.items()
-        )
-        if not retained:
-            restore = {o: before[o] for o in changes if before[o] != KEYCHAIN and not schema[o].get("sensitive")}
-            if restore:
-                configure(restore)
-            kept = sorted(
-                variable
-                for variable, option in mapping.items()
-                if schema[option].get("sensitive") and changes.get(option) == "" and after[option] == KEYCHAIN
-            )
-            if kept:
-                refuse(kept_message(kept, "Previous non-secret options were restored."))
-            refuse(
-                "Claude Code did not retain the requested options; previous non-secret options were restored."
-                + cleared_note
-            )
+            if not retained:
+                restore = {o: before[o] for o in staged if before[o] != KEYCHAIN and not schema[o].get("sensitive")}
+                if restore:
+                    try:
+                        configure(restore)
+                        restored = claude_values(claude_saved(plugin_id, environment, mapping, schema), mapping, schema)
+                    except SetupError:
+                        restored = None
+                    if restored is None or any(restored[o] != value for o, value in restore.items()):
+                        refuse(
+                            "Claude Code did not retain the requested options, and restoring the previous options "
+                            "was not confirmed. Check them with claude plugin configure "
+                            + plugin_id
+                            + " --json and rerun setup with the settings you want; set a provider to null to remove it."
+                        )
+                kept = sorted(
+                    variable
+                    for variable, option in mapping.items()
+                    if schema[option].get("sensitive") and staged.get(option) == "" and after[option] == KEYCHAIN
+                )
+                if kept:
+                    refuse(kept_message(kept, "Previous non-secret options were restored."))
+                refuse("Claude Code did not retain the requested options; previous non-secret options were restored.")
+        if clears:
+            variable = cleared[0]
+            try:
+                configure(clears)
+                current = claude_values(claude_saved(plugin_id, environment, mapping, schema), mapping, schema)
+            except SetupError:
+                if any(staged.values()):
+                    refuse(
+                        "Claude Code did not confirm the change. " + variable + " still has a saved value: the "
+                        "keychain secret or its verified replacement. Rerun setup with the same settings to finish; "
+                        "until then the server refuses to start if two spellings of the credential are set."
+                    )
+                refuse(
+                    "Claude Code did not confirm the change. Whether " + variable + " was cleared from the system "
+                    "keychain is unknown. Rerun setup with the same settings to finish."
+                )
+            if current[mapping[variable]] == KEYCHAIN:
+                # Claude Code kept the secret, so a provider beside it, saved now or by an
+                # interrupted earlier run, would stop the server: leave only the secret.
+                spellings = {
+                    o: ""
+                    for o in mapping.values()
+                    if credential_of(o) == variable and o != mapping[variable] and current[o] != ""
+                }
+                unconfirmed = kept_message(
+                    [variable],
+                    "Removing its provider was not confirmed; rerun setup with the provider set to null to remove it.",
+                )
+                if spellings:
+                    try:
+                        configure(spellings)
+                        current = claude_values(claude_saved(plugin_id, environment, mapping, schema), mapping, schema)
+                    except SetupError:
+                        refuse(unconfirmed)
+                    if any(current[o] != "" for o in spellings):
+                        refuse(unconfirmed)
+                removed = set(spellings) | {o for o in staged if staged[o] == "" and before[o] not in ("", KEYCHAIN)}
+                if not spellings and not staged:
+                    outcome = "No settings were changed."
+                elif any(before[o] not in ("", KEYCHAIN) for o in removed):
+                    outcome = (
+                        "The provider saved earlier for "
+                        + variable
+                        + " was removed, so it uses only its keychain secret."
+                    )
+                else:
+                    outcome = "Previous non-secret options were restored."
+                refuse(kept_message([variable], outcome))
     if remaining is not None:
         replace_project_settings(legacy_path, original, remaining)
     if args.migrate:
