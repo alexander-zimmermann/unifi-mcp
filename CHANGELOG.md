@@ -11,6 +11,11 @@ existing install.
 
 <!-- New entries go below this line, newest first; the release writeback inserts here. -->
 
+## 2026-10-24 — unifi-network 1.3.0
+
+- Pins `unifi-network-mcp` [0.40.0](https://github.com/sirkirby/unifi-mcp/releases/tag/network/v0.40.0).
+
+
 ## 2026-10-23 — unifi-network 1.2.6, unifi-protect 1.1.10, unifi-access 1.0.8, unifi-intelligence 1.0.1
 
 - Each plugin now ships its own icon, which Codex shows in its plugin list and composer and Anthropic's plugin directory uses for a listing. Nothing else changes.
