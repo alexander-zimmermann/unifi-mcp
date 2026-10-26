@@ -104,6 +104,18 @@ HTTP is disabled by default. The stdio transport is recommended for most MCP cli
 
 Diagnostics log operation metadata only. Controller payloads, paths, and exception messages are omitted regardless of the legacy payload flags.
 
+## Tracing
+
+The MCP SDK records a span for every MCP message (`tools/call <tool>` carries `gen_ai.tool.name`) and continues a W3C trace context passed in the request's `_meta`, so a gateway or client that sends one sees the server's spans in its own trace. Setting an OTLP endpoint exports these spans. The Docker image includes the exporter; pip and uvx installs need the `otel` extra (`unifi-protect-mcp[otel]`).
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | unset | OTLP collector endpoint; spans are exported only when this or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` is set |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc` | `grpc` or `http/protobuf` |
+| `OTEL_SERVICE_NAME` | `unifi-protect-mcp` | Service name on exported spans |
+
+The other standard `OTEL_*` variables apply as usual, for example `OTEL_TRACES_SAMPLER`, `OTEL_RESOURCE_ATTRIBUTES` and `OTEL_EXPORTER_OTLP_HEADERS`. A span records the MCP method, the tool name, the JSON-RPC request ID and the timing, not tool arguments or results. Tools return their errors as results; if an exception escapes a request handler anyway, the SDK also records its type, message and stack trace on the span.
+
 ## Permissions
 
 Authorization is enforced at call time. All tools remain visible regardless of permission configuration. See [permissions.md](permissions.md) for full details.

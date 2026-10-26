@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated:** 2026-06-12
+**Last updated:** 2026-10-26
 
 ## Summary
 
@@ -50,12 +50,17 @@ If you choose to enable the [cloud relay](packages/unifi-mcp-relay/), your tool 
 - No inbound ports are exposed on your network
 - You can revoke relay access at any time by rotating or deleting your token
 
+### Trace Export (optional)
+
+If you set an OTLP endpoint (`OTEL_EXPORTER_OTLP_ENDPOINT`), the MCP servers send trace spans to the collector you configured. A span records the MCP method, the tool name, the JSON-RPC request ID and the timing, not tool arguments or results. Tools return their errors as results; if an exception escapes a request handler anyway, the SDK also records its type, message and stack trace on the span. Without an endpoint, no spans leave the server process.
+
 ## Third-Party Services
 
 | Service | When Used | What It Sees |
 |---------|-----------|-------------|
 | **Your UniFi Controller** | Always | Tool requests (queries, mutations) over your local network |
 | **Cloudflare Workers** | Only if you enable relay mode | Tool calls in transit (encrypted, not stored) |
+| **Your OTLP collector** | Only if you set an OTLP endpoint | Trace spans: MCP method, tool name, request ID, timing |
 | **PyPI** | Only during installation | Standard package download (pip/uv install) |
 | **GitHub** | Only during plugin installation | Plugin source code download |
 
