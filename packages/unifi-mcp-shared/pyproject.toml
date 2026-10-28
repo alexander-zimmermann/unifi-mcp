@@ -24,12 +24,12 @@ dependencies = [
 ]
 
 # The MCP SDK already records a span per message through opentelemetry-api.
-# This extra adds what exports them over OTLP (see unifi_mcp_shared.tracing);
+# This extra adds what exports them over OTLP/HTTP (see unifi_mcp_shared.tracing);
 # the container images install it, stdio installs stay as they are.
 [project.optional-dependencies]
 otel = [
     "opentelemetry-sdk>=1.45.1,<2",
-    "opentelemetry-exporter-otlp>=1.45.1,<2",
+    "opentelemetry-exporter-otlp-proto-http>=1.45.1,<2",
 ]
 
 [dependency-groups]

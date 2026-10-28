@@ -137,10 +137,12 @@ The MCP SDK records a span for every MCP message (`tools/call <tool>` carries `g
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | unset | OTLP collector endpoint; spans are exported only when this or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` is set |
-| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc` | `grpc` or `http/protobuf` |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` | `http/protobuf`, or `grpc` once `opentelemetry-exporter-otlp-proto-grpc` is installed |
 | `OTEL_SERVICE_NAME` | `unifi-access-mcp` | Service name on exported spans |
 
-The other standard `OTEL_*` variables apply as usual, for example `OTEL_TRACES_SAMPLER`, `OTEL_RESOURCE_ATTRIBUTES` and `OTEL_EXPORTER_OTLP_HEADERS`. A span records the MCP method, the tool name, the JSON-RPC request ID and the timing, not tool arguments or results. Tools return their errors as results; if an exception escapes a request handler anyway, the SDK also records its type, message and stack trace on the span.
+The other standard `OTEL_*` variables apply as usual, for example `OTEL_TRACES_SAMPLER`, `OTEL_RESOURCE_ATTRIBUTES` and `OTEL_EXPORTER_OTLP_HEADERS`. A span records the MCP method, the tool name, the JSON-RPC request ID and the timing, not tool arguments or results. A call through `access_execute` or `access_batch`, which the `lazy` and `meta_only` registration modes rely on, carries the meta tool's name, not the name of the tool it runs.
+
+A failed request records its error message in the span status. For `resources/read`, the SDK's message contains the requested resource URI. Tools return their errors as results; if an exception escapes a request handler anyway, the SDK also records its type, message and stack trace on the span.
 
 ## Permissions
 
