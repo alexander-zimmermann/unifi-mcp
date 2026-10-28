@@ -11,6 +11,11 @@ existing install.
 
 <!-- New entries go below this line, newest first; the release writeback inserts here. -->
 
+## 2026-10-28 — unifi-access 1.1.0
+
+- Pins `unifi-access-mcp` [0.7.0](https://github.com/sirkirby/unifi-mcp/releases/tag/access/v0.7.0).
+
+
 ## 2026-10-28 — unifi-network 1.4.0, unifi-protect 1.2.0
 
 - Pins `unifi-network-mcp` [0.41.0](https://github.com/sirkirby/unifi-mcp/releases/tag/network/v0.41.0) and `unifi-protect-mcp` [0.10.0](https://github.com/sirkirby/unifi-mcp/releases/tag/protect/v0.10.0).
